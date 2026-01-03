@@ -1,31 +1,46 @@
-volumes:
-  pg_data_production:
-  static_volume:
+version: '3.8'
 
 services:
-  db:
-    image: postgres:13.10
-    env_file: .env
-    volumes:
-      - pg_data_production:/var/lib/postgresql/data
-
   backend:
-    image: mak37/taski_backend
-    env_file: .env
+    image: mak37/taski_backend:latest
+    restart: always
     volumes:
       - static_volume:/backend_static
+      - media_volume:/app/media/
+    environment:
+      - DEBUG=False
+      - SECRET_KEY=${SECRET_KEY}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
+    depends_on:
+      - db
 
   frontend:
-    image: mak37/taski_frontend
-    env_file: .env
-    command: cp -r /app/build/. /frontend_static/
-    volumes:
-      - static_volume:/frontend_static
+    image: mak37/taski_frontend:latest
+    restart: always
 
   gateway:
-    image: mak37/taski_gateway
-    env_file: .env
-    volumes:
-      - static_volume:/staticfiles/
+    image: mak37/taski_gateway:latest
+    restart: always
     ports:
-      - "8000:80"
+      - "80:80"
+      - "443:443"
+    volumes:
+      - static_volume:/staticfiles
+    depends_on:
+      - backend
+      - frontend
+
+  db:
+    image: postgres:13
+    restart: always
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:
