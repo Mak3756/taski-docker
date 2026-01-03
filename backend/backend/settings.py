@@ -11,7 +11,7 @@ DEBUG = True
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'backend']
 
 
-# Application definition
+TESTING = 'test' in sys.argv or 'GITHUB_ACTIONS' in os.environ
 
 INSTALLED_APPS = [
     'api.apps.ApiConfig',
