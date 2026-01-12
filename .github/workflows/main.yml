@@ -5,177 +5,172 @@ on:
     branches:
       - main
     paths-ignore:
-      - 'README.md'
-      - 'LICENSE'
+      - README.md
+      - LICENSE
 
 jobs:
-  # 1. Тестирование бэкенда
-  tests:
+  # 1. Backend tests
+  backend_tests:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
-      
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.12'
-      
-      - name: Install dependencies
+          python-version: "3.12"
+
+      - name: Install backend dependencies
         run: |
-          cd backend/
+          cd backend
           pip install -r requirements.txt
-      
-      - name: Run tests
+
+      - name: Run backend tests
         run: |
-          cd backend/
+          cd backend
           python manage.py test
 
-  # 2. Тестирование фронтенда
+  # 2. Frontend tests
   frontend_tests:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
-      
+
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
-      
-      - name: Install dependencies
+          node-version: "18"
+
+      - name: Install frontend dependencies
         run: |
-          cd frontend/
+          cd frontend
           npm ci
-      
-      - name: Run tests
+
+      - name: Run frontend tests
         run: |
-          cd frontend/
+          cd frontend
           npm run test
 
-  # 3. Сборка и публикация бэкенда
-  build_and_push_to_docker_hub:
-    name: Push backend Docker image to DockerHub
+  # 3. Build & push backend
+  build_backend:
     runs-on: ubuntu-latest
-    needs: tests  # Ждём успешного тестирования
+    needs: backend_tests
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-      
-      - name: Login to Docker Hub
+      - uses: actions/checkout@v3
+
+      - uses: docker/setup-buildx-action@v2
+
+      - name: Login to DockerHub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      
-      - name: Build and push backend image
+
+      - name: Build & push backend image
         uses: docker/build-push-action@v4
         with:
-          context: ./backend/
+          context: ./backend
           push: true
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/taski_backend:latest
-            ${{ secrets.DOCKER_USERNAME }}/taski_backend:${{ github.sha }}
 
-  # 4. Сборка и публикация фронтенда
-  build_frontend_and_push_to_docker_hub:
-    name: Push frontend Docker image to DockerHub
+  # 4. Build & push frontend
+  build_frontend:
     runs-on: ubuntu-latest
-    needs: frontend_tests  # Ждём успешного тестирования
+    needs: frontend_tests
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-      
-      - name: Login to Docker Hub
+      - uses: actions/checkout@v3
+
+      - uses: docker/setup-buildx-action@v2
+
+      - name: Login to DockerHub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      
-      - name: Build and push frontend image
+
+      - name: Build & push frontend image
         uses: docker/build-push-action@v4
         with:
-          context: ./frontend/
+          context: ./frontend
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/taski_frontend:latest
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/taski_frontend:latest
 
-  # 5. Сборка и публикация Nginx
-  build_gateway_and_push_to_docker_hub:
-    name: Push gateway Docker image to DockerHub
+  # 5. Build & push gateway (nginx)
+  build_gateway:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-      
-      - name: Login to Docker Hub
+      - uses: actions/checkout@v3
+
+      - uses: docker/setup-buildx-action@v2
+
+      - name: Login to DockerHub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      
-      - name: Build and push gateway image
+
+      - name: Build & push gateway image
         uses: docker/build-push-action@v4
         with:
-          context: ./gateway/
+          context: ./gateway
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/taski_gateway:latest
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/taski_gateway:latest
 
-  # 6. Деплой на продакшен-сервер
+  # 6. Deploy
   deploy:
     runs-on: ubuntu-latest
     needs:
-      - build_and_push_to_docker_hub
-      - build_frontend_and_push_to_docker_hub
-      - build_gateway_and_push_to_docker_hub
+      - build_backend
+      - build_frontend
+      - build_gateway
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      
-      - name: Copy docker-compose to server
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USER }}
-          key: ${{ secrets.SSH_KEY }}
-          passphrase: ${{ secrets.SSH_PASSPHRASE }}
-          source: "docker-compose.production.yml"
-          target: "taski"
-      
-      - name: Deploy on production server
+      - name: Test SSH connection
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
-          username: ${{ secrets.USER }}
+          username: yc-user
           key: ${{ secrets.SSH_KEY }}
-          passphrase: ${{ secrets.SSH_PASSPHRASE }}
+          script: echo "SSH connection successful"
+
+      - name: Copy docker-compose file
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: yc-user
+          key: ${{ secrets.SSH_KEY }}
+          source: docker-compose.production.yml
+          target: taski
+
+      - name: Deploy on server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: yc-user
+          key: ${{ secrets.SSH_KEY }}
           script: |
             cd taski
-            # Скачиваем обновлённые образы
             sudo docker compose -f docker-compose.production.yml pull
-            # Останавливаем старые контейнеры
             sudo docker compose -f docker-compose.production.yml down
-            # Запускаем новые контейнеры
             sudo docker compose -f docker-compose.production.yml up -d
-            # Выполняем миграции
             sudo docker compose -f docker-compose.production.yml exec backend python manage.py migrate
-            # Собираем статику
             sudo docker compose -f docker-compose.production.yml exec backend python manage.py collectstatic --no-input
-            # Копируем статику в нужную директорию
-            sudo docker compose -f docker-compose.production.yml exec backend cp -r /app/collected_static/. /backend_static/static/
 
-  # 7. Отправка уведомления в Telegram
-  send_message:
+  # 7. Telegram notification
+  notify:
     runs-on: ubuntu-latest
     needs: deploy
+
     steps:
       - name: Send Telegram notification
         uses: appleboy/telegram-action@master
@@ -183,8 +178,6 @@ jobs:
           to: ${{ secrets.TELEGRAM_TO }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
           message: |
-            Деплой успешно выполнен!
-            Репозиторий: ${{ github.repository }}
-            Коммит: ${{ github.sha }}
-            Время: ${{ github.event.head_commit.timestamp }}
-            Проект Taski обновлён на продакшен-сервере.
+            ✅ Taski deployed successfully!
+            Repo: ${{ github.repository }}
+            Commit: ${{ github.sha }}
