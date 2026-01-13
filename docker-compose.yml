@@ -6,30 +6,39 @@ volumes:
 
 services:
   db:
-    image: postgres:13.10
+    image: postgres:13
     env_file: .env
     volumes:
-      - pg_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data/
 
   backend:
-    build: ./backend/
+    image: mak37/taski_backend:latest
     env_file: .env
+    volumes:
+      - static_volume:/backend_static
     depends_on:
       - db
-    volumes:
-      - static:/backend_static
+    healthcheck:
+      test: ["CMD", "pgrep", "gunicorn"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   frontend:
-    build: ./frontend/
+    image: mak37/taski_frontend:latest
     volumes:
-      - static:/static
-    command: cp -r /app/build/. /static/
+      - static_volume:/app/build
 
   gateway:
-    build: ./gateway/
-    depends_on:
-      - backend
-    volumes:
-      - static:/staticfiles
+    image: mak37/taski_gateway:latest
+    restart: always
     ports:
-      - "8000:80"
+      - "8080:80"
+    volumes:
+      - static_volume:/staticfiles
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
