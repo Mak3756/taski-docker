@@ -25,6 +25,10 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run backend tests
+        env:
+          DB_ENGINE: django.db.backends.sqlite3
+          DB_NAME: db.sqlite3
+          SECRET_KEY: test-secret-key-12345
         run: |
           cd backend
           python manage.py test
@@ -154,12 +158,42 @@ jobs:
           port: ${{ secrets.PORT }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            cd taski
-            sudo docker compose pull
-            sudo docker compose down
-            sudo docker compose up -d
-            sudo docker compose exec backend python manage.py migrate
-            sudo docker compose exec backend python manage.py collectstatic --no-input
+            echo "Starting deployment..."
+            echo "Current directory: $(pwd)"
+            echo "Listing files in taski directory:"
+            ls -la ~/taski/
+            
+            echo "Checking if docker-compose.production.yml exists..."
+            if [ -f ~/taski/docker-compose.production.yml ]; then
+              echo "File exists"
+            else
+              echo "File not found!"
+              exit 1
+            fi
+            
+            cd ~/taski
+            echo "Pulling new images..."
+            sudo docker compose -f docker-compose.production.yml pull
+            
+            echo "Stopping old containers..."
+            sudo docker compose -f docker-compose.production.yml down
+            
+            echo "Starting new containers..."
+            sudo docker compose -f docker-compose.production.yml up -d
+            
+            echo "Waiting for containers to start..."
+            sleep 10
+            
+            echo "Checking container status..."
+            sudo docker compose -f docker-compose.production.yml ps
+            
+            echo "Running migrations..."
+            sudo docker compose -f docker-compose.production.yml exec backend python manage.py migrate
+            
+            echo "Collecting static files..."
+            sudo docker compose -f docker-compose.production.yml exec backend python manage.py collectstatic --no-input
+            
+            echo "Deployment completed successfully!"
 
 
   notify:
@@ -172,6 +206,7 @@ jobs:
           to: ${{ secrets.TELEGRAM_TO }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
           message: |
-            Taski успешно задеплоен
+            Taski успешно задеплоен!
             Репозиторий: ${{ github.repository }}
             Коммит: ${{ github.sha }}
+            Время: $(date)
