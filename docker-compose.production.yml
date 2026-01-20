@@ -1,45 +1,38 @@
 version: '3.8'
 
-services:
-  backend:
-    image: mak37/taski_backend:latest
-    restart: always
-    volumes:
-      - static_volume:/backend_static
-      - media_volume:/app/media/
-    env_file:
-      - .env
-    depends_on:
-      - db
-
-  frontend:
-    image: mak37/taski_frontend:latest
-    restart: always
-    volumes:
-      - static_volume:/frontend_static
-    command: cp -r /app/build/. /frontend_static/
-
-  gateway:
-    image: mak37/taski_gateway:latest
-    restart: always
-    ports:
-      - "80:80"
-    volumes:
-      - static_volume:/staticfiles
-      - media_volume:/media
-    depends_on:
-      - backend
-      - frontend
-
-  db:
-    image: postgres:13
-    restart: always
-    env_file:
-      - .env
-    volumes:
-      - postgres_data:/var/lib/postgresql/data/
-
 volumes:
   postgres_data:
   static_volume:
   media_volume:
+
+networks:
+  web:
+    external: true
+
+services:
+  db:
+    image: postgres:13
+    env_file: .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - web
+
+  backend:
+    image: mak37/taski_backend:latest
+    env_file: .env
+    volumes:
+      - static_volume:/backend_static
+      - media_volume:/app/media
+    depends_on:
+      - db
+    networks:
+      - web
+
+  frontend:
+    image: mak37/taski_frontend:latest
+    volumes:
+      - static_volume:/frontend_static
+    command: cp -r /app/build/. /frontend_static/
+    networks:
+      - web
