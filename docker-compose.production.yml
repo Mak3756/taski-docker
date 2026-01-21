@@ -33,6 +33,6 @@ services:
       - taski_static:/staticfiles
       - taski_media:/media
     ports:
-      - "8000:80"
+      - "80:80"
     depends_on:
       - backend
