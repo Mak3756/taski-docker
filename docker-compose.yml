@@ -1,8 +1,8 @@
 version: '3.9'
 
 volumes:
-  pg_data:
-  static:
+  postgres_data:
+  static_volume:
 
 services:
   db:
@@ -28,7 +28,8 @@ services:
   frontend:
     image: mak37/taski_frontend:latest
     volumes:
-      - static_volume:/app/build
+      - static_volume:/staticfiles
+    command: cp -r /app/build/. /staticfiles/
 
   gateway:
     image: mak37/taski_gateway:latest
