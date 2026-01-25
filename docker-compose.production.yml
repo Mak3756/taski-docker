@@ -24,8 +24,8 @@ services:
   frontend:
     image: mak37/taski_frontend:latest
     volumes:
-      - taski_static:/app/staticfiles
-    command: sh -c "cp -r /app/build/. /app/staticfiles/"
+      - taski_static:/app/static
+    command: sh -c "cp -r /app/build/. /app/static/"
 
   gateway:
     image: mak37/taski_gateway:latest
