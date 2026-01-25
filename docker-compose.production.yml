@@ -17,19 +17,20 @@ services:
     env_file: .env
     volumes:
       - taski_media:/app/media
+      - taski_static:/app/staticfiles
     depends_on:
       - db
 
   frontend:
     image: mak37/taski_frontend:latest
     volumes:
-      - taski_static:/staticfiles
-    command: sh -c "cp -r /app/build/. /app/static/"
+      - taski_static:/app/staticfiles
+    command: sh -c "cp -r /app/build/. /app/staticfiles/"
 
   gateway:
     image: mak37/taski_gateway:latest
     volumes:
-      - taski_static:/static
+      - taski_static:/staticfiles
       - taski_media:/media
     ports:
       - "8080:80"
