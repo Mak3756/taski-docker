@@ -28,6 +28,7 @@ services:
     command: sh -c "cp -r /app/build/. /usr/share/nginx/html/"
 
   gateway:
+    build: ./gateway
     image: mak37/taski_gateway:latest
     volumes:
       - taski_static:/usr/share/nginx/html
