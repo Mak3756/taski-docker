@@ -1,48 +1,43 @@
 version: '3.8'
 
 volumes:
+  taski_static:
+  taski_media:
   taski_pg_data:
-  taski_static_volume:
 
 services:
   db:
     image: postgres:13
+    restart: always
     env_file: .env
     volumes:
       - taski_pg_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   backend:
     image: mak37/taski_backend:latest
+    restart: always
     env_file: .env
     volumes:
-      - taski_static_volume:/backend_static
+      - taski_static:/backend_static
+      - taski_media:/app/media
     depends_on:
-      db:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+      - db
 
   frontend:
     image: mak37/taski_frontend:latest
+    command: cp -r /app/build/. /frontend_static/
     volumes:
-      - taski_static_volume:/frontend_static
-    command: sh -c "cp -r /app/build/. /frontend_static/ && chmod -R 755 /frontend_static/"
+      - taski_static:/frontend_static
 
   gateway:
-    image: mak37/taski_gateway:latest 
+    build: ./gateway
+    image: mak37/taski_gateway:latest
+    restart: always
     volumes:
-      - taski_static_volume:/staticfiles
+      - taski_static:/staticfiles
+      - taski_media:/media
     ports:
-      - "8000:80"
+      - "8080:80"
     depends_on:
-      backend:
-        condition: service_healthy
+      - backend
+      - frontend
