@@ -1,5 +1,10 @@
 version: '3.9'
 
+volumes:
+  pg_data:
+  static:
+  media:
+
 services:
   db:
     image: postgres:13
@@ -13,27 +18,19 @@ services:
     depends_on:
       - db
     volumes:
-      - static:/app/static
-      - media:/app/media
+      - static:/backend_static
+      - media:/backend_media
 
   frontend:
     image: mak37/taski_frontend:latest
+    command: cp -r /app/build/. /frontend_static/
     volumes:
-      - static:/app/static
-    command: sh -c "cp -r /app/build/. /app/static/"
+      - static:/frontend_static
 
   gateway:
     image: mak37/taski_gateway:latest
-    depends_on:
-      - backend
-      - frontend
     ports:
       - "8000:80"
     volumes:
-      - static:/static
+      - static:/staticfiles
       - media:/media
-
-volumes:
-  static:
-  media:
-  pg_data:
