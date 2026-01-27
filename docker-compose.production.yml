@@ -24,17 +24,14 @@ services:
   frontend:
     image: mak37/taski_frontend:latest
     volumes:
-      - taski_static:/usr/share/nginx/html
-    command: sh -c "cp -r /app/build/. /usr/share/nginx/html/"
+      - taski_static:/static
+    command: sh -c "cp -r /app/build/. /static/"
 
   gateway:
     build: ./gateway
     image: mak37/taski_gateway:latest
     volumes:
-      - taski_static:/usr/share/nginx/html
+      - taski_static:/static
       - taski_media:/media
     ports:
       - "8080:80"
-    depends_on:
-      - backend
-      - frontend
