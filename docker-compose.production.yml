@@ -1,57 +1,48 @@
+version: '3.8'
+
 volumes:
-  taski_static:
-  taski_media:
   taski_pg_data:
+  taski_static_volume:
 
 services:
   db:
     image: postgres:13
-    restart: always
-    environment:
-      POSTGRES_DB: django
-      POSTGRES_USER: django_user
-      POSTGRES_PASSWORD: mysecretpassword
+    env_file: .env
     volumes:
       - taski_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   backend:
     image: mak37/taski_backend:latest
-    restart: always
-    environment:
-      DEBUG: "False"
-      SECRET_KEY: "0SwsXC]xsd_&=^1tQ)wi23lo=7?LtqNgP!X5TQ>T^KxmILA/?-r+r%0-i$$aXzL]"
-      ALLOWED_HOSTS: "tonali.mooo.com"
-      CSRF_TRUSTED_ORIGINS: "https://tonali.mooo.com"
-
-      DB_ENGINE: django.db.backends.postgresql
-      DB_NAME: django
-      DB_USER: django_user
-      DB_PASSWORD: mysecretpassword
-      DB_HOST: db
-      DB_PORT: "5432"
-
+    env_file: .env
     volumes:
-      - taski_media:/app/media
-      - taski_static:/app/staticfiles
-
+      - taski_static_volume:/backend_static
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   frontend:
     image: mak37/taski_frontend:latest
     volumes:
-      - taski_static:/usr/share/nginx/html
-    command: sh -c "cp -r /app/build/. /usr/share/nginx/html/"
+      - taski_static_volume:/frontend_static
+    command: sh -c "cp -r /app/build/. /frontend_static/ && chmod -R 755 /frontend_static/"
 
   gateway:
-    build: ./gateway
-    image: mak37/taski_gateway:latest
-    restart: always
+    image: mak37/taski_gateway:latest 
     volumes:
-      - taski_static:/usr/share/nginx/html
-      - taski_media:/media
+      - taski_static_volume:/staticfiles
     ports:
-      - "8080:80"
+      - "8000:80"
     depends_on:
-      - backend
-      - frontend
+      backend:
+        condition: service_healthy
