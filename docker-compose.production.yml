@@ -21,9 +21,10 @@ services:
 
   frontend:
     image: mak37/taski_frontend:latest
-    command: cp -r /app/build/. /staticfiles/
     volumes:
       - static:/staticfiles
+    command: >
+      sh -c "cp -r /app/build/* /staticfiles/ && echo 'STATIC COPIED'"
     restart: "no"
 
   gateway:
