@@ -13,27 +13,27 @@ services:
   backend:
     image: mak37/taski_backend:latest
     env_file: .env
-    depends_on:
-      - db
     volumes:
       - static:/backend_static
       - media:/backend_media
+    depends_on:
+      - db
 
   frontend:
     image: mak37/taski_frontend:latest
-    entrypoint: ["sh", "-c"]
-    command: "cp -r /app/build/. /staticfiles/ && exit 0"
+    command: sh -c "cp -r /app/build/. /static/ && exit 0"
     volumes:
-      - static:/staticfiles
-    restart: "no"
+      - static:/static
+    depends_on:
+      - backend
 
   gateway:
     image: mak37/taski_gateway:latest
     ports:
       - "8080:80"
     volumes:
-      - static:/staticfiles:ro
+      - static:/static:ro
       - media:/media
     depends_on:
-      - backend
       - frontend
+      - backend
