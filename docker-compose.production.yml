@@ -1,6 +1,8 @@
+version: '3.8'
+
 volumes:
-  static:
-  media:
+  static_volume:
+  media_volume:
   pg_data:
 
 services:
@@ -9,31 +11,35 @@ services:
     env_file: .env
     volumes:
       - pg_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
 
   backend:
     image: mak37/taski_backend:latest
     env_file: .env
     volumes:
-      - static:/backend_static
-      - media:/backend_media
+      - static_volume:/app/static
+      - media_volume:/app/media
     depends_on:
       - db
 
   frontend:
     image: mak37/taski_frontend:latest
-    command: sh -c "cp -r /app/build/. /static/ && exit 0"
+    command: sh -c "cp -r /app/build/. /app/static/ && tail -f /dev/null"
     volumes:
-      - static:/static
+      - static_volume:/app/static
     depends_on:
       - backend
 
   gateway:
     image: mak37/taski_gateway:latest
     ports:
-      - "8080:80"
+      - "8000:80"
     volumes:
-      - static:/static:ro
-      - media:/media
+      - static_volume:/static:ro
+      - media_volume:/media
     depends_on:
       - frontend
       - backend
