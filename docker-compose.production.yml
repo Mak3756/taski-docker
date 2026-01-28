@@ -25,16 +25,16 @@ services:
 
   frontend:
     image: mak37/taski_frontend:latest
-    volumes:
-      - taski_static:/frontend_static
-    command: sh -c "cp -r /app/build/* /frontend_static/"
-
-  gateway:
-    build: ./gateway
-    image: mak37/taski_gateway:latest
     restart: always
     volumes:
       - taski_static:/staticfiles
+    command: sh -c "cp -r /app/build/. /staticfiles/"
+
+  gateway:
+    image: mak37/taski_gateway:latest
+    restart: always
+    volumes:
+      - taski_static:/staticfiles:ro
       - taski_media:/media
     ports:
       - "8080:80"
