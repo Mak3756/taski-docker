@@ -21,7 +21,8 @@ services:
 
   frontend:
     image: mak37/taski_frontend:latest
-    command: cp -r /app/build/. /staticfiles/
+    entrypoint: ["sh", "-c"]
+    command: "cp -r /app/build/. /staticfiles/ && exit 0"
     volumes:
       - static:/staticfiles
     restart: "no"
