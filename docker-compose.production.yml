@@ -1,7 +1,9 @@
+version: '3.9'
+
 volumes:
+  pg_data:
   static:
   media:
-  pg_data:
 
 services:
   db:
@@ -13,11 +15,11 @@ services:
   backend:
     image: mak37/taski_backend:latest
     env_file: .env
-    volumes:
-      - static:/backend_static
-      - media:/media
     depends_on:
       - db
+    volumes:
+      - static:/backend_static
+      - media:/backend_media
 
   frontend:
     image: mak37/taski_frontend:latest
@@ -26,11 +28,11 @@ services:
     command: sh -c "cp -r /app/build/. /static/"
 
   gateway:
-    image: mak37/taski_gateway:latest
-    volumes:
-      - static:/static
-      - media:/media
-    ports:
-      - "8080:80"
+    build: ./gateway
     depends_on:
       - backend
+      - frontend
+    ports:
+      - "8080:80"
+    volumes:
+      - static:/static
