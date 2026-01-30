@@ -22,6 +22,7 @@ services:
     image: mak37/taski_frontend:latest
     volumes:
       - static:/staticfiles
+    command: sh -c "cp -r /app/build/* /staticfiles/"
 
   gateway:
     image: mak37/taski_gateway:latest
