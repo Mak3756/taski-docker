@@ -8,4 +8,4 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-CMD ["sh", "-c", "cp -r build/* /frontend_static/"]
+CMD ["sh", "-c", "cp -r build/* /staticfiles/"]
