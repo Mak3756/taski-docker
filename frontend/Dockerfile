@@ -1,12 +1,11 @@
-FROM node:18
+FROM node:18-alpine
+
 WORKDIR /app
 
-COPY package.json package.json
-COPY package-lock.json package-lock.json
-
-RUN npm install
+COPY package.json package-lock.json ./
+RUN npm ci
 
 COPY . .
 RUN npm run build
 
-CMD ["npx", "-y", "http-server", "-p", "8000", "/app/build"]
+CMD ["sh", "-c", "cp -r build/* /frontend_static/"]
