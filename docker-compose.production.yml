@@ -1,5 +1,3 @@
-version: '3.9'
-
 volumes:
   pg_data:
   static:
@@ -29,7 +27,7 @@ services:
     image: mak37/taski_frontend:latest
     volumes:
       - static:/staticfiles
-    command: sh -c "cp -r /app/build/. /staticfiles/"
+    command: sh -c "mkdir -p /staticfiles && cp -r /app/build/. /staticfiles/"
     
   gateway:
     image: mak37/taski_gateway:latest
